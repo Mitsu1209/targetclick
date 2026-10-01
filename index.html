@@ -9,12 +9,12 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f0fdf4; /* 目に優しい薄い緑色 */
-            touch-action: manipulation; /* ズーム防止 */
-            user-select: none; /* テキスト選択防止 */
+            background-color: #f0fdf4;
+            touch-action: manipulation;
+            user-select: none;
+            overflow: hidden; /* スクロール防止 */
         }
         
-        /* ターゲットがふんわり出現するアニメーション */
         @keyframes popIn {
             0% { transform: scale(0); opacity: 0; }
             80% { transform: scale(1.1); opacity: 1; }
@@ -24,7 +24,6 @@
             animation: popIn 0.2s ease-out forwards;
         }
 
-        /* マルバツが迫ってくるアニメーション */
         @keyframes feedbackPop {
             0% { transform: scale(0.5); opacity: 0; }
             50% { transform: scale(1.2); opacity: 1; }
@@ -34,41 +33,47 @@
             animation: feedbackPop 0.6s ease-in-out forwards;
         }
 
-        /* ターゲット要素のスタイル */
         .game-target {
             position: absolute;
-            font-size: 8rem; /* 約128pxの巨大サイズ */
+            font-size: 7rem; /* やや大きめ約112px */
             cursor: pointer;
             line-height: 1;
             filter: drop-shadow(0 10px 8px rgb(0 0 0 / 0.2));
             transition: transform 0.1s;
+            /* アイコンの中心が配置座標になるように調整 */
+            transform: translate(-50%, -50%); 
         }
         .game-target:active {
-            transform: scale(0.9);
+            transform: translate(-50%, -50%) scale(0.9);
         }
     </style>
 </head>
-<body class="h-screen w-screen overflow-hidden flex flex-col items-center justify-center text-gray-800">
+<body class="h-screen w-screen flex flex-col items-center justify-center text-gray-800">
 
-    <!-- ご指定のBGMファイルを設定しています -->
     <audio id="bgm" src="bgm.mp3" loop></audio>
 
     <!-- スタート画面 -->
     <div id="start-screen" class="flex flex-col items-center justify-center w-full h-full p-4 text-center">
-        <h1 class="text-5xl md:text-7xl font-black text-green-700 mb-8 tracking-wider">
-            脳トレ・クリック！
+        <h1 class="text-5xl md:text-6xl font-black text-green-700 mb-6 tracking-wider leading-tight">
+            脳トレ・クリック！<br>
+            <span class="text-4xl text-orange-600">〜注意力を鍛えよう〜</span>
         </h1>
         
-        <div class="bg-white p-8 rounded-3xl shadow-2xl border-4 border-green-500 mb-10 max-w-3xl">
-            <h2 class="text-3xl font-bold mb-6 text-gray-800 border-b-4 border-green-200 pb-2">【あそびかた】</h2>
-            <ul class="text-2xl md:text-4xl font-bold space-y-6 text-left">
+        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl border-4 border-green-500 mb-8 max-w-4xl">
+            <h2 class="text-3xl font-bold mb-4 text-gray-800 border-b-4 border-green-200 pb-2">【あそびかた】</h2>
+            <ul class="text-2xl md:text-3xl font-bold space-y-4 text-left">
                 <li class="flex items-center">
                     <span class="text-5xl mr-4">🍎</span> 
-                    <span class="text-red-600">赤りんご</span> が出たら <span class="text-red-600 ml-2 border-b-4 border-red-600">素早くクリック！</span>
+                    <div>
+                        <span class="text-red-600">赤りんご</span> が出たら <span class="text-red-600 border-b-4 border-red-600">それだけをクリック！</span>
+                    </div>
                 </li>
-                <li class="flex items-center">
-                    <span class="text-5xl mr-4">🍏 💣</span> 
-                    青りんごと爆弾は <span class="text-blue-600 ml-2 border-b-4 border-blue-600">さわらず待つ！</span>
+                <li class="flex items-start mt-6">
+                    <span class="text-5xl mr-4 whitespace-nowrap">🍅🍑🍏💣</span> 
+                    <div>
+                        ニセモノだけの時は <span class="text-blue-600 border-b-4 border-blue-600">何もさわらずに待つ！</span><br>
+                        <span class="text-xl text-gray-500 font-normal">（トマトや桃にだまされないで！）</span>
+                    </div>
                 </li>
             </ul>
         </div>
@@ -80,8 +85,7 @@
 
     <!-- ゲーム画面 -->
     <div id="game-screen" class="hidden flex-col w-full h-full relative">
-        <!-- ヘッダー（スコアとラウンド数） -->
-        <div class="h-24 bg-green-700 text-white flex justify-between items-center px-8 shadow-md z-10">
+        <div class="h-24 bg-green-700 text-white flex justify-between items-center px-8 shadow-md z-10 shrink-0">
             <div class="text-3xl md:text-4xl font-bold">
                 回数：<span id="round-display" class="text-yellow-300">1 / 20</span>
             </div>
@@ -90,12 +94,10 @@
             </div>
         </div>
 
-        <!-- プレイエリア（ここにターゲットが出現） -->
-        <div id="play-area" class="flex-1 relative bg-white overflow-hidden cursor-crosshair">
-            <!-- ターゲット要素はJSで生成してここに追加されます -->
+        <div id="play-area" class="flex-1 relative bg-white overflow-hidden cursor-crosshair w-full h-full">
+            <!-- ターゲット要素はJSで生成 -->
         </div>
 
-        <!-- ⭕️❌フィードバック（画面中央に巨大表示） -->
         <div id="feedback-overlay" class="absolute inset-0 flex items-center justify-center pointer-events-none z-50 hidden">
             <span id="feedback-text" class="text-[15rem] md:text-[20rem] font-black filter drop-shadow-2xl">⭕️</span>
         </div>
@@ -121,18 +123,19 @@
     </div>
 
     <script>
-        // ゲームの状態を管理する変数
+        // --- 設定値 ---
         const TOTAL_ROUNDS = 20;
-        const TARGET_DURATION = 1500; // 1.5秒
+        const TARGET_DURATION = 2000; // 2.0秒（難易度が上がったため少し長めに設定）
         const POINTS_PER_ROUND = 5;
+        const DISTRACTORS = ['🍅', '🍑', '🍏', '💣'];
 
         let currentRound = 0;
         let score = 0;
         let isPlaying = false;
         let roundTimeout;
-        let currentTargetType = ''; // 'red-apple', 'green-apple', or 'bomb'
+        let hasTargetInCurrentRound = false;
 
-        // DOM要素の取得
+        // --- DOM要素 ---
         const screens = {
             start: document.getElementById('start-screen'),
             game: document.getElementById('game-screen'),
@@ -147,7 +150,6 @@
         const resultMessage = document.getElementById('result-message');
         const bgm = document.getElementById('bgm');
 
-        // 画面切り替え関数
         function showScreen(screenName) {
             Object.values(screens).forEach(screen => screen.classList.add('hidden'));
             screens[screenName].classList.remove('hidden');
@@ -155,16 +157,14 @@
             if(screenName === 'start' || screenName === 'result') screens[screenName].classList.add('flex');
         }
 
-        // BGMの再生・停止制御
         function playBGM() {
             bgm.currentTime = 0;
-            bgm.play().catch(e => console.log("BGM自動再生がブラウザにブロックされました:", e));
+            bgm.play().catch(e => console.log("BGM自動再生ブロック:", e));
         }
         function stopBGM() {
             bgm.pause();
         }
 
-        // ゲーム開始処理
         function startGame() {
             currentRound = 0;
             score = 0;
@@ -172,12 +172,15 @@
             updateHeader();
             showScreen('game');
             playBGM();
-            
-            // 最初のラウンドを開始（少しだけ間を置く）
             setTimeout(nextRound, 1000);
         }
 
-        // 次のラウンドへ進む処理
+        // ランダムなダミーを取得
+        function getRandomDistractor() {
+            return DISTRACTORS[Math.floor(Math.random() * DISTRACTORS.length)];
+        }
+
+        // --- ラウンド制御ロジック ---
         function nextRound() {
             if (currentRound >= TOTAL_ROUNDS) {
                 endGame();
@@ -186,124 +189,137 @@
 
             currentRound++;
             updateHeader();
-            playArea.innerHTML = ''; // 前のターゲットを消去
+            playArea.innerHTML = ''; 
 
-            // ターゲットをランダムに決定（50%赤りんご、25%青りんご、25%爆弾）
-            const rand = Math.random();
-            if (rand < 0.5) {
-                currentTargetType = 'red-apple';
-            } else if (rand < 0.75) {
-                currentTargetType = 'green-apple';
-            } else {
-                currentTargetType = 'bomb';
-            }
+            // 1. 今回のアイテム数（2個 or 3個）と、正解（赤リンゴ）が含まれるかを決定
+            const numItems = Math.random() < 0.5 ? 2 : 3;
+            hasTargetInCurrentRound = Math.random() < 0.5; // 50%で赤リンゴあり、50%で全部ダミー
+
+            let itemsToPlace = [];
             
-            // ターゲットのDOM要素を作成
-            const targetEl = document.createElement('div');
-            targetEl.className = 'game-target target-anim';
-            if (currentTargetType === 'red-apple') targetEl.innerHTML = '🍎';
-            else if (currentTargetType === 'green-apple') targetEl.innerHTML = '🍏';
-            else targetEl.innerHTML = '💣';
+            if (hasTargetInCurrentRound) {
+                // 赤リンゴありパターン（赤1つ ＋ ダミー）
+                itemsToPlace.push({ isTarget: true, emoji: '🍎' });
+                for (let i = 0; i < numItems - 1; i++) {
+                    itemsToPlace.push({ isTarget: false, emoji: getRandomDistractor() });
+                }
+            } else {
+                // 全部ダミーパターン
+                for (let i = 0; i < numItems; i++) {
+                    itemsToPlace.push({ isTarget: false, emoji: getRandomDistractor() });
+                }
+            }
 
-            // プレイエリアのサイズを取得し、ターゲットがはみ出さないように配置
+            // 描画順をランダムに（赤リンゴが常に最初に出ないように）
+            itemsToPlace.sort(() => Math.random() - 0.5);
+
+            // 2. 重なり防止のため、画面を3x3の9マス（グリッド）に見立てる
             const areaRect = playArea.getBoundingClientRect();
-            const targetSize = 130; // 約8rem
-            const maxX = areaRect.width - targetSize;
-            const maxY = areaRect.height - targetSize;
+            const cellWidth = areaRect.width / 3;
+            const cellHeight = areaRect.height / 3;
 
-            // ランダムな位置（余白を考慮）
-            const randomX = Math.max(20, Math.floor(Math.random() * maxX) - 20);
-            const randomY = Math.max(20, Math.floor(Math.random() * maxY) - 20);
+            // 0〜8のマス目から、アイテムの数だけランダムな位置を選ぶ
+            const availableCells = [0, 1, 2, 3, 4, 5, 6, 7, 8].sort(() => Math.random() - 0.5).slice(0, numItems);
 
-            targetEl.style.left = `${randomX}px`;
-            targetEl.style.top = `${randomY}px`;
+            // 3. アイテムの配置
+            itemsToPlace.forEach((item, index) => {
+                const cellIndex = availableCells[index];
+                const col = cellIndex % 3;
+                const row = Math.floor(cellIndex / 3);
 
-            // クリックイベントの追加
-            targetEl.addEventListener('mousedown', handleTargetClick); // タッチパネル対応のためmousedown
-            targetEl.addEventListener('touchstart', handleTargetClick, {passive: false});
+                const el = document.createElement('div');
+                el.className = 'game-target target-anim';
+                el.innerHTML = item.emoji;
 
-            playArea.appendChild(targetEl);
+                // 各マス目の「中心」に配置しつつ、少しだけランダムにズラす（マスからはみ出ない程度）
+                const jitterX = (Math.random() - 0.5) * (cellWidth * 0.4);
+                const jitterY = (Math.random() - 0.5) * (cellHeight * 0.4);
 
-            // 1.5秒経過後の処理（タイムアウト＝何もしなかった場合）
+                const x = (col * cellWidth) + (cellWidth / 2) + jitterX;
+                const y = (row * cellHeight) + (cellHeight / 2) + jitterY;
+
+                el.style.left = `${x}px`;
+                el.style.top = `${y}px`;
+
+                // クリック（タップ）イベント
+                const clickHandler = (e) => {
+                    e.preventDefault();
+                    handleItemClick(item.isTarget);
+                };
+                el.addEventListener('mousedown', clickHandler);
+                el.addEventListener('touchstart', clickHandler, {passive: false});
+
+                playArea.appendChild(el);
+            });
+
+            // 2秒後にタイムアウト判定
             roundTimeout = setTimeout(handleTimeout, TARGET_DURATION);
         }
 
-        // ターゲットをクリック（タッチ）した時の処理
-        function handleTargetClick(e) {
-            e.preventDefault();
+        // --- クリック・判定ロジック ---
+        function handleItemClick(clickedTarget) {
             if (!isPlaying) return;
-            
             clearTimeout(roundTimeout);
-            playArea.innerHTML = ''; // すぐにターゲットを消す
+            playArea.innerHTML = ''; 
 
-            if (currentTargetType === 'red-apple') {
-                // 赤りんごをクリック（大正解）
+            if (clickedTarget) {
+                // 赤りんごをクリックした（大正解）
                 addScore();
                 showFeedback(true);
             } else {
-                // 青りんご・爆弾をクリック（不正解）
+                // ダミーをクリックしてしまった（不正解）
                 showFeedback(false);
             }
 
-            // フィードバックを見せた後、次のラウンドへ
             setTimeout(nextRound, 700);
         }
 
-        // 時間切れ（何もしなかった）時の処理
         function handleTimeout() {
             if (!isPlaying) return;
-            playArea.innerHTML = ''; // ターゲットを消す
+            playArea.innerHTML = ''; 
 
-            if (currentTargetType !== 'red-apple') {
-                // 青りんごや爆弾を無視できた（大正解）
+            if (hasTargetInCurrentRound) {
+                // 赤リンゴがあったのに見逃した（不正解）
+                showFeedback(false);
+            } else {
+                // 赤リンゴがないことに気づき、触らずに我慢できた！（大正解）
                 addScore();
                 showFeedback(true);
-            } else {
-                // 赤りんごを見逃した（不正解）
-                showFeedback(false);
             }
 
             setTimeout(nextRound, 700);
         }
 
-        // スコア加算
         function addScore() {
             score += POINTS_PER_ROUND;
             updateHeader();
         }
 
-        // ⭕️❌のフィードバックアニメーション表示
         function showFeedback(isCorrect) {
             feedbackText.textContent = isCorrect ? '⭕️' : '❌';
             feedbackText.className = `text-[15rem] md:text-[20rem] font-black filter drop-shadow-2xl feedback-anim ${isCorrect ? 'text-red-500' : 'text-blue-600'}`;
-            
             feedbackOverlay.classList.remove('hidden');
             
-            // アニメーションが終わる頃に隠す
             setTimeout(() => {
                 feedbackOverlay.classList.add('hidden');
             }, 600);
         }
 
-        // ヘッダーの表示更新
         function updateHeader() {
             roundDisplay.textContent = `${Math.min(currentRound, TOTAL_ROUNDS)} / ${TOTAL_ROUNDS}`;
             scoreDisplay.textContent = score;
         }
 
-        // ゲーム終了時の処理
         function endGame() {
             isPlaying = false;
             stopBGM();
-            
             finalScore.textContent = score;
             
-            // 点数に応じたメッセージ
             if (score === 100) {
                 resultMessage.textContent = "満点です！パーフェクト！🎉";
                 resultMessage.className = "text-3xl md:text-4xl font-bold text-red-600 mt-6";
             } else if (score >= 80) {
-                resultMessage.textContent = "素晴らしい反射神経です！👏";
+                resultMessage.textContent = "素晴らしい判断力です！👏";
                 resultMessage.className = "text-3xl md:text-4xl font-bold text-orange-500 mt-6";
             } else if (score >= 50) {
                 resultMessage.textContent = "よく頑張りました！✨";
@@ -312,11 +328,9 @@
                 resultMessage.textContent = "自分のペースで続けましょう！🌱";
                 resultMessage.className = "text-3xl md:text-4xl font-bold text-blue-600 mt-6";
             }
-
             showScreen('result');
         }
 
-        // ボタンのイベントリスナー登録
         document.getElementById('start-btn').addEventListener('click', startGame);
         document.getElementById('restart-btn').addEventListener('click', startGame);
 
